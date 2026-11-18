@@ -1,0 +1,20 @@
+# Splatter API
+
+Canonical public contract for the Splatter HTTP API.
+
+The first supported workflow creates a splat, uploads a large source directly through short-lived
+presigned URLs, completes the upload, and lets Splatter begin processing.
+
+## Documentation
+
+- [OpenAPI contract](openapi.yaml)
+- [Authentication](docs/authentication.md)
+- [Uploads](docs/uploads.md)
+- [Errors](docs/errors.md)
+- [Idempotency](docs/idempotency.md)
+- [Versioning](docs/versioning.md)
+- [curl upload example](examples/curl/upload.sh)
+
+Only PLY sources are currently accepted. The source request uses a format-independent
+`gaussianCount`; obtaining that value from a PLY vertex declaration is a client implementation
+detail.

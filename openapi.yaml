@@ -1,0 +1,305 @@
+openapi: 3.1.0
+info:
+  title: Splatter API
+  version: 1.0.0
+  description: Create splats and upload large source files through presigned part URLs.
+servers:
+  - url: https://new.splatter.app/api/v1
+security:
+  - bearerAuth: []
+paths:
+  /splats:
+    post:
+      operationId: createSplat
+      summary: Create a splat and its source upload
+      parameters:
+        - $ref: "#/components/parameters/IdempotencyKey"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSplatRequest"
+      responses:
+        "201":
+          description: Splat and upload created, or an identical request replayed
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateSplatResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /splats/{publicId}/upload/part-authorizations:
+    post:
+      operationId: authorizeUploadParts
+      summary: Create short-lived upload URLs for source parts
+      parameters:
+        - $ref: "#/components/parameters/PublicId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PartAuthorizationsRequest"
+      responses:
+        "200":
+          description: Part authorizations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PartAuthorizationsResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /splats/{publicId}/upload/completion:
+    post:
+      operationId: completeUpload
+      summary: Complete a source upload and begin processing
+      parameters:
+        - $ref: "#/components/parameters/PublicId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UploadCompletionRequest"
+      responses:
+        "200":
+          description: Current splat state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SplatStatusResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "502":
+          $ref: "#/components/responses/ServerError"
+        "503":
+          $ref: "#/components/responses/ServerError"
+  /splats/{publicId}/upload/abort:
+    post:
+      operationId: abortUpload
+      summary: Abort an active source upload
+      parameters:
+        - $ref: "#/components/parameters/PublicId"
+      responses:
+        "200":
+          description: Aborted splat
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SplatStatusResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+        "500":
+          $ref: "#/components/responses/ServerError"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Clerk website session token. Personal API tokens are planned but not yet issued.
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 128
+        pattern: "^[A-Za-z0-9._:-]+$"
+    PublicId:
+      name: publicId
+      in: path
+      required: true
+      schema:
+        type: string
+  schemas:
+    CreateSplatRequest:
+      type: object
+      additionalProperties: false
+      required: [title, visibility, source]
+      properties:
+        title:
+          type: string
+          minLength: 1
+        description:
+          type: [string, "null"]
+        visibility:
+          type: string
+          enum: [public, unlisted]
+        source:
+          type: object
+          additionalProperties: false
+          required: [filename, format, sizeBytes, gaussianCount]
+          properties:
+            filename:
+              type: string
+              minLength: 1
+            format:
+              type: string
+              enum: [ply]
+            sizeBytes:
+              type: integer
+              minimum: 1
+              maximum: 549755813888000
+            gaussianCount:
+              type: integer
+              minimum: 1
+    CreateSplatResponse:
+      type: object
+      additionalProperties: false
+      required: [splat, upload]
+      properties:
+        splat:
+          $ref: "#/components/schemas/SplatStatus"
+        upload:
+          type: object
+          additionalProperties: false
+          required: [partSizeBytes, partCount]
+          properties:
+            partSizeBytes:
+              type: integer
+              const: 134217728
+            partCount:
+              type: integer
+              minimum: 1
+              maximum: 4000
+    PartAuthorizationsRequest:
+      type: object
+      additionalProperties: false
+      required: [partNumbers]
+      properties:
+        partNumbers:
+          type: array
+          minItems: 1
+          maxItems: 16
+          uniqueItems: true
+          items:
+            type: integer
+            minimum: 1
+            maximum: 4000
+    PartAuthorizationsResponse:
+      type: object
+      additionalProperties: false
+      required: [parts]
+      properties:
+        parts:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required: [partNumber, url, expiresAt]
+            properties:
+              partNumber:
+                type: integer
+              url:
+                type: string
+                format: uri
+              expiresAt:
+                type: string
+                format: date-time
+    UploadCompletionRequest:
+      type: object
+      additionalProperties: false
+      required: [parts]
+      properties:
+        parts:
+          type: array
+          minItems: 1
+          maxItems: 4000
+          items:
+            type: object
+            additionalProperties: false
+            required: [partNumber, etag]
+            properties:
+              partNumber:
+                type: integer
+                minimum: 1
+                maximum: 4000
+              etag:
+                type: string
+                minLength: 1
+                maxLength: 1024
+    SplatStatusResponse:
+      type: object
+      additionalProperties: false
+      required: [splat]
+      properties:
+        splat:
+          $ref: "#/components/schemas/SplatStatus"
+    SplatStatus:
+      type: object
+      additionalProperties: false
+      required: [publicId, status]
+      properties:
+        publicId:
+          type: string
+        status:
+          type: string
+          enum: [uploading, uploaded, processing, ready, failed]
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+  responses:
+    BadRequest:
+      description: Invalid request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    NotFound:
+      description: Splat not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    Conflict:
+      description: Idempotency or upload-state conflict
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    ServerError:
+      description: Temporary or internal failure
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
