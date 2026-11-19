@@ -9,6 +9,25 @@ security:
   - bearerAuth: []
 paths:
   /splats:
+    parameters:
+      - $ref: "#/components/parameters/RequestId"
+    get:
+      operationId: listSplats
+      summary: List splats owned by the authenticated user
+      responses:
+        "200":
+          description: Current owner dashboard snapshot
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SplatListResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ServerError"
     post:
       operationId: createSplat
       summary: Create a splat and its source upload
@@ -27,10 +46,21 @@ paths:
             Cache-Control:
               schema:
                 type: string
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/CreateSplatResponse"
+              examples:
+                created:
+                  value:
+                    splat:
+                      publicId: abc-123-xyz
+                      status: uploading
+                    upload:
+                      partSizeBytes: 134217728
+                      partCount: 1
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -39,7 +69,100 @@ paths:
           $ref: "#/components/responses/Conflict"
         "500":
           $ref: "#/components/responses/ServerError"
+  /splats/{publicId}:
+    parameters:
+      - $ref: "#/components/parameters/RequestId"
+    get:
+      operationId: getSplat
+      summary: Get an owned splat and its ready-scene bootstrap
+      parameters:
+        - $ref: "#/components/parameters/PublicId"
+      responses:
+        "200":
+          description: Owned splat detail
+          headers:
+            Cache-Control:
+              description: Owner responses are never shared or cached
+              schema:
+                type: string
+                const: private, no-store
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OwnerSplatResponse"
+              examples:
+                processing:
+                  summary: Polling while processing is active
+                  value:
+                    splat:
+                      publicId: abc-123-xyz
+                      title: Scan
+                      description: null
+                      visibility: unlisted
+                      status: processing
+                      viewerConfig: null
+                      createdAt: "2026-11-19T12:00:00Z"
+                      updatedAt: "2026-11-19T12:01:00Z"
+                    scene: null
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
+    patch:
+      operationId: updateSplat
+      summary: Update one or more editable fields on an owned splat
+      parameters:
+        - $ref: "#/components/parameters/PublicId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSplatRequest"
+      responses:
+        "200":
+          description: Updated owned splat detail
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OwnerSplatResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "415":
+          description: Request body is not JSON
+        "500":
+          $ref: "#/components/responses/ServerError"
+    delete:
+      operationId: deleteSplat
+      summary: Soft-delete an owned splat
+      parameters:
+        - $ref: "#/components/parameters/PublicId"
+      responses:
+        "204":
+          description: Splat deleted
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/ServerError"
   /splats/{publicId}/upload/part-authorizations:
+    parameters:
+      - $ref: "#/components/parameters/RequestId"
     post:
       operationId: authorizeUploadParts
       summary: Create short-lived upload URLs for source parts
@@ -54,10 +177,20 @@ paths:
       responses:
         "200":
           description: Part authorizations
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/PartAuthorizationsResponse"
+              examples:
+                onePart:
+                  value:
+                    parts:
+                      - partNumber: 1
+                        url: https://storage.example/presigned-part-credential
+                        expiresAt: "2026-11-19T12:05:00Z"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -69,6 +202,8 @@ paths:
         "500":
           $ref: "#/components/responses/ServerError"
   /splats/{publicId}/upload/completion:
+    parameters:
+      - $ref: "#/components/parameters/RequestId"
     post:
       operationId: completeUpload
       summary: Complete a source upload and begin processing
@@ -83,10 +218,19 @@ paths:
       responses:
         "200":
           description: Current splat state
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/SplatStatusResponse"
+              examples:
+                processing:
+                  value:
+                    splat:
+                      publicId: abc-123-xyz
+                      status: processing
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -100,6 +244,8 @@ paths:
         "503":
           $ref: "#/components/responses/ServerError"
   /splats/{publicId}/upload/abort:
+    parameters:
+      - $ref: "#/components/parameters/RequestId"
     post:
       operationId: abortUpload
       summary: Abort an active source upload
@@ -108,6 +254,9 @@ paths:
       responses:
         "200":
           description: Aborted splat
+          headers:
+            X-Request-Id:
+              $ref: "#/components/headers/RequestId"
           content:
             application/json:
               schema:
@@ -125,8 +274,18 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
-      description: Clerk website session token. Personal API tokens are planned but not yet issued.
+      description: Clerk website session token or a personal API token created in Splatter settings.
   parameters:
+    RequestId:
+      name: X-Request-Id
+      in: header
+      required: false
+      description: Optional caller correlation ID; invalid values are replaced
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 128
+        pattern: "^[A-Za-z0-9._:-]+$"
     IdempotencyKey:
       name: Idempotency-Key
       in: header
@@ -143,6 +302,192 @@ components:
       schema:
         type: string
   schemas:
+    SplatListResponse:
+      type: object
+      additionalProperties: false
+      required: [storageSummary, splats]
+      properties:
+        storageSummary:
+          type: object
+          additionalProperties: false
+          required: [limitBytes, usedBytes]
+          properties:
+            limitBytes:
+              type: integer
+              minimum: 1
+            usedBytes:
+              type: integer
+              minimum: 0
+        splats:
+          type: array
+          items:
+            $ref: "#/components/schemas/DashboardSplat"
+    DashboardSplat:
+      type: object
+      additionalProperties: false
+      required:
+        - browserProgressPercent
+        - createdAt
+        - description
+        - gaussianCount
+        - originalFilename
+        - publicId
+        - sourceFormat
+        - status
+        - sizeBytes
+        - thumbnailUrl
+        - title
+        - updatedAt
+        - visibility
+      properties:
+        browserProgressPercent:
+          type: [number, "null"]
+        createdAt:
+          type: string
+          format: date-time
+        description:
+          type: [string, "null"]
+        gaussianCount:
+          type: integer
+          minimum: 0
+        originalFilename:
+          type: string
+        publicId:
+          type: string
+        sourceFormat:
+          type: string
+        status:
+          $ref: "#/components/schemas/SplatStatusValue"
+        sizeBytes:
+          type: integer
+          minimum: 0
+        thumbnailUrl:
+          type: [string, "null"]
+          format: uri
+        title:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+        visibility:
+          $ref: "#/components/schemas/SplatVisibility"
+    UpdateSplatRequest:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        title:
+          type: string
+          minLength: 1
+        description:
+          type: [string, "null"]
+        visibility:
+          type: string
+          enum: [public, unlisted]
+        viewerConfig:
+          $ref: "#/components/schemas/ViewerConfig"
+    OwnerSplatResponse:
+      type: object
+      additionalProperties: false
+      required: [splat, scene]
+      properties:
+        splat:
+          $ref: "#/components/schemas/OwnerSplat"
+        scene:
+          oneOf:
+            - $ref: "#/components/schemas/EditorScene"
+            - type: "null"
+    OwnerSplat:
+      type: object
+      additionalProperties: false
+      required:
+        - createdAt
+        - description
+        - publicId
+        - status
+        - title
+        - updatedAt
+        - viewerConfig
+        - visibility
+      properties:
+        createdAt:
+          type: string
+          format: date-time
+        description:
+          type: [string, "null"]
+        publicId:
+          type: string
+        status:
+          $ref: "#/components/schemas/SplatStatusValue"
+        title:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+        viewerConfig:
+          oneOf:
+            - $ref: "#/components/schemas/ViewerConfig"
+            - type: "null"
+        visibility:
+          $ref: "#/components/schemas/SplatVisibility"
+    EditorScene:
+      type: object
+      additionalProperties: false
+      required: [datasetBaseUrl, description, publicId, title, viewerConfig]
+      properties:
+        datasetBaseUrl:
+          type: string
+          format: uri
+        description:
+          type: [string, "null"]
+        publicId:
+          type: string
+        title:
+          type: string
+        viewerConfig:
+          oneOf:
+            - $ref: "#/components/schemas/ViewerConfig"
+            - type: "null"
+    ViewerConfig:
+      type: object
+      additionalProperties: false
+      required: [version, defaultView, upDirection, backgroundColor, fov]
+      properties:
+        version:
+          type: integer
+          const: 1
+        defaultView:
+          oneOf:
+            - type: array
+              minItems: 6
+              maxItems: 6
+              items:
+                type: number
+            - type: "null"
+        upDirection:
+          type: array
+          minItems: 3
+          maxItems: 3
+          items:
+            type: number
+        backgroundColor:
+          type: array
+          minItems: 4
+          maxItems: 4
+          items:
+            type: number
+            minimum: 0
+            maximum: 1
+        fov:
+          type: number
+          minimum: 20
+          maximum: 110
+    SplatStatusValue:
+      type: string
+      enum: [created, uploading, uploaded, processing, ready, failed]
+    SplatVisibility:
+      type: string
+      enum: [private, unlisted, public]
     CreateSplatRequest:
       type: object
       additionalProperties: false
@@ -264,41 +609,97 @@ components:
         publicId:
           type: string
         status:
-          type: string
-          enum: [uploading, uploaded, processing, ready, failed]
+          $ref: "#/components/schemas/SplatStatusValue"
     Error:
       type: object
+      additionalProperties: false
       required: [error]
       properties:
         error:
-          type: string
+          type: object
+          additionalProperties: false
+          required: [code, message, requestId]
+          properties:
+            code:
+              type: string
+              enum:
+                - AUTHENTICATION_REQUIRED
+                - API_TOKEN_NOT_FOUND
+                - IDEMPOTENCY_CONFLICT
+                - INTERNAL_ERROR
+                - INVALID_REQUEST
+                - MALFORMED_JSON
+                - PAYLOAD_TOO_LARGE
+                - PROCESSING_CALLBACK_CONFLICT
+                - PROCESSING_JOB_NOT_FOUND
+                - SPLAT_NOT_FOUND
+                - TEMPORARY_UNAVAILABLE
+                - UNSUPPORTED_MEDIA_TYPE
+                - UPLOAD_STATE_CONFLICT
+                - UPSTREAM_FAILURE
+            message:
+              type: string
+            requestId:
+              type: string
+            fields:
+              type: array
+              items:
+                type: object
+                additionalProperties: false
+                required: [path, message]
+                properties:
+                  path:
+                    type: string
+                  message:
+                    type: string
+  headers:
+    RequestId:
+      description: Correlation ID assigned to this response
+      required: true
+      schema:
+        type: string
   responses:
     BadRequest:
       description: Invalid request
+      headers:
+        X-Request-Id:
+          $ref: "#/components/headers/RequestId"
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
     Unauthorized:
       description: Authentication required
+      headers:
+        X-Request-Id:
+          $ref: "#/components/headers/RequestId"
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
     NotFound:
       description: Splat not found
+      headers:
+        X-Request-Id:
+          $ref: "#/components/headers/RequestId"
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
     Conflict:
       description: Idempotency or upload-state conflict
+      headers:
+        X-Request-Id:
+          $ref: "#/components/headers/RequestId"
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
     ServerError:
       description: Temporary or internal failure
+      headers:
+        X-Request-Id:
+          $ref: "#/components/headers/RequestId"
       content:
         application/json:
           schema:

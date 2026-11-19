@@ -49,8 +49,22 @@ for part_number in $(seq 1 "$part_count"); do
     '. + [{partNumber: $partNumber, etag: $etag}]' <<< "$completion_parts")
 done
 
-curl --fail-with-body --silent --show-error \
+completion=$(curl --fail-with-body --silent --show-error \
   --request POST "$api_origin/splats/$public_id/upload/completion" \
   --header "Authorization: Bearer $SPLATTER_TOKEN" \
   --header "Content-Type: application/json" \
-  --data "$(jq -n --argjson parts "$completion_parts" '{parts: $parts}')"
+  --data "$(jq -n --argjson parts "$completion_parts" '{parts: $parts}')")
+
+status=$(jq -r '.splat.status' <<< "$completion")
+while [[ "$status" != "ready" && "$status" != "failed" ]]; do
+  sleep 5
+  detail=$(curl --fail-with-body --silent --show-error \
+    "$api_origin/splats/$public_id" \
+    --header "Authorization: Bearer $SPLATTER_TOKEN")
+  status=$(jq -r '.splat.status' <<< "$detail")
+done
+
+jq -n --arg publicId "$public_id" --arg status "$status" \
+  '{publicId: $publicId, status: $status}'
+
+[[ "$status" == "ready" ]]

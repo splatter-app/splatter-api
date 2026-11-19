@@ -10,6 +10,7 @@ presigned URLs, completes the upload, and lets Splatter begin processing.
 - [OpenAPI contract](openapi.yaml)
 - [Authentication](docs/authentication.md)
 - [Uploads](docs/uploads.md)
+- [Splat resources](docs/splats.md)
 - [Errors](docs/errors.md)
 - [Idempotency](docs/idempotency.md)
 - [Versioning](docs/versioning.md)
