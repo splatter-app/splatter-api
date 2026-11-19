@@ -39,6 +39,8 @@ but the API treats it as a format-independent, unverified source count.
   requires replacing or renewing the token, not an unbounded retry loop.
 - On `429`, wait at least the number of seconds in `Retry-After` before retrying.
 
-The [curl example](../examples/curl/upload.sh) implements the complete create, upload, completion,
-and polling flow. A production CLI should add bounded retry delays and persist the idempotency key,
-public ID, upload policy, and completed ETags until the upload reaches a terminal state.
+The [standalone Python uploader](../README.md#standalone-python-uploader) implements PLY inspection,
+streaming multipart transfer, completion, and terminal polling. It requests a fresh authorization
+and retries only failed storage parts until they succeed. It has no local resume state and does not
+retry other API requests. The [curl example](../examples/curl/upload.sh) remains a lower-level
+walkthrough of the HTTP flow.
