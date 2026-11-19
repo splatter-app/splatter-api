@@ -11,23 +11,6 @@ paths:
   /splats:
     parameters:
       - $ref: "#/components/parameters/RequestId"
-    get:
-      operationId: listSplats
-      summary: List splats owned by the authenticated user
-      responses:
-        "200":
-          description: Current owner dashboard snapshot
-          headers:
-            X-Request-Id:
-              $ref: "#/components/headers/RequestId"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SplatListResponse"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "503":
-          $ref: "#/components/responses/ServerError"
     post:
       operationId: createSplat
       summary: Create a splat and its source upload
@@ -67,6 +50,10 @@ paths:
           $ref: "#/components/responses/Unauthorized"
         "409":
           $ref: "#/components/responses/Conflict"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "429":
+          $ref: "#/components/responses/RateLimited"
         "500":
           $ref: "#/components/responses/ServerError"
   /splats/{publicId}:
@@ -140,7 +127,7 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
         "415":
-          description: Request body is not JSON
+          $ref: "#/components/responses/UnsupportedMediaType"
         "500":
           $ref: "#/components/responses/ServerError"
     delete:
@@ -199,6 +186,10 @@ paths:
           $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "429":
+          $ref: "#/components/responses/RateLimited"
         "500":
           $ref: "#/components/responses/ServerError"
   /splats/{publicId}/upload/completion:
@@ -239,6 +230,12 @@ paths:
           $ref: "#/components/responses/NotFound"
         "409":
           $ref: "#/components/responses/Conflict"
+        "415":
+          $ref: "#/components/responses/UnsupportedMediaType"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/ServerError"
         "502":
           $ref: "#/components/responses/ServerError"
         "503":
@@ -274,7 +271,7 @@ components:
     bearerAuth:
       type: http
       scheme: bearer
-      description: Clerk website session token or a personal API token created in Splatter settings.
+      description: Personal API token created in Splatter settings.
   parameters:
     RequestId:
       name: X-Request-Id
@@ -302,75 +299,6 @@ components:
       schema:
         type: string
   schemas:
-    SplatListResponse:
-      type: object
-      additionalProperties: false
-      required: [storageSummary, splats]
-      properties:
-        storageSummary:
-          type: object
-          additionalProperties: false
-          required: [limitBytes, usedBytes]
-          properties:
-            limitBytes:
-              type: integer
-              minimum: 1
-            usedBytes:
-              type: integer
-              minimum: 0
-        splats:
-          type: array
-          items:
-            $ref: "#/components/schemas/DashboardSplat"
-    DashboardSplat:
-      type: object
-      additionalProperties: false
-      required:
-        - browserProgressPercent
-        - createdAt
-        - description
-        - gaussianCount
-        - originalFilename
-        - publicId
-        - sourceFormat
-        - status
-        - sizeBytes
-        - thumbnailUrl
-        - title
-        - updatedAt
-        - visibility
-      properties:
-        browserProgressPercent:
-          type: [number, "null"]
-        createdAt:
-          type: string
-          format: date-time
-        description:
-          type: [string, "null"]
-        gaussianCount:
-          type: integer
-          minimum: 0
-        originalFilename:
-          type: string
-        publicId:
-          type: string
-        sourceFormat:
-          type: string
-        status:
-          $ref: "#/components/schemas/SplatStatusValue"
-        sizeBytes:
-          type: integer
-          minimum: 0
-        thumbnailUrl:
-          type: [string, "null"]
-          format: uri
-        title:
-          type: string
-        updatedAt:
-          type: string
-          format: date-time
-        visibility:
-          $ref: "#/components/schemas/SplatVisibility"
     UpdateSplatRequest:
       type: object
       additionalProperties: false
@@ -515,7 +443,7 @@ components:
             sizeBytes:
               type: integer
               minimum: 1
-              maximum: 549755813888000
+              maximum: 536870912000
             gaussianCount:
               type: integer
               minimum: 1
@@ -624,14 +552,11 @@ components:
               type: string
               enum:
                 - AUTHENTICATION_REQUIRED
-                - API_TOKEN_NOT_FOUND
                 - IDEMPOTENCY_CONFLICT
                 - INTERNAL_ERROR
                 - INVALID_REQUEST
                 - MALFORMED_JSON
-                - PAYLOAD_TOO_LARGE
-                - PROCESSING_CALLBACK_CONFLICT
-                - PROCESSING_JOB_NOT_FOUND
+                - RATE_LIMITED
                 - SPLAT_NOT_FOUND
                 - TEMPORARY_UNAVAILABLE
                 - UNSUPPORTED_MEDIA_TYPE
@@ -689,6 +614,30 @@ components:
     Conflict:
       description: Idempotency or upload-state conflict
       headers:
+        X-Request-Id:
+          $ref: "#/components/headers/RequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    UnsupportedMediaType:
+      description: Request body is not JSON
+      headers:
+        X-Request-Id:
+          $ref: "#/components/headers/RequestId"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+    RateLimited:
+      description: Approximate per-owner request limit exceeded
+      headers:
+        Retry-After:
+          description: Minimum number of seconds to wait before retrying
+          required: true
+          schema:
+            type: integer
+            const: 60
         X-Request-Id:
           $ref: "#/components/headers/RequestId"
       content:

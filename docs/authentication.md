@@ -6,9 +6,10 @@ Send credentials through the standard bearer header:
 Authorization: Bearer <token>
 ```
 
-The v1 owner and upload routes accept either the Splatter website's Clerk session or a personal API
-token created on the website's Settings page. Send the complete personal token as the bearer value.
-It is shown only once when created; store it like a password.
+External clients use a personal API token created on the Splatter website's Settings page. Send the
+complete personal token as the bearer value. It is shown only once when created; store it like a
+password. The website also uses the same routes with its Clerk session, but Clerk authentication is
+not part of the external client contract.
 
 Personal tokens grant the same owner-level API access as the account that created them. They do not
 grant access to token-management endpoints. Revoked and expired tokens fail immediately with

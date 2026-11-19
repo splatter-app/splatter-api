@@ -23,22 +23,19 @@ credentials or presigned URLs.
 
 Current codes are:
 
-- `API_TOKEN_NOT_FOUND`
 - `AUTHENTICATION_REQUIRED`
 - `IDEMPOTENCY_CONFLICT`
 - `INTERNAL_ERROR`
 - `INVALID_REQUEST`
 - `MALFORMED_JSON`
-- `PAYLOAD_TOO_LARGE`
-- `PROCESSING_CALLBACK_CONFLICT`
-- `PROCESSING_JOB_NOT_FOUND`
+- `RATE_LIMITED`
 - `SPLAT_NOT_FOUND`
 - `TEMPORARY_UNAVAILABLE`
 - `UNSUPPORTED_MEDIA_TYPE`
 - `UPLOAD_STATE_CONFLICT`
 - `UPSTREAM_FAILURE`
 
-Treat `400`, `404`, and most `409` responses as terminal. Retry `502` and `503` with capped
-exponential backoff and jitter. If a response includes `Retry-After`, wait at least that long. Do
+Treat `400`, `404`, and most `409` responses as terminal. Retry `429`, `502`, and `503` with capped
+exponential backoff and jitter. For `429`, wait at least the number of seconds in `Retry-After`. Do
 not retry an invalid `401` credential indefinitely. Operation-specific retry guidance is in
 [Uploads](uploads.md).

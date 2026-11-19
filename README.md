@@ -2,8 +2,9 @@
 
 Canonical public contract for the Splatter HTTP API.
 
-The first supported workflow creates a splat, uploads a large source directly through short-lived
-presigned URLs, completes the upload, and lets Splatter begin processing.
+The first supported external workflow creates a splat, uploads a large source directly through
+short-lived presigned URLs, completes the upload, and lets Splatter begin processing. Splat listing
+is not part of the first external contract.
 
 ## Documentation
 

@@ -21,6 +21,9 @@ but the API treats it as a format-independent, unverified source count.
 - Part URLs expire after 15 minutes. Request a replacement authorization instead of retaining an
   expired URL.
 - Completion contains exactly one ETag for every part in the upload policy.
+- Per owner and per Cloudflare location, the API approximately permits 10 creations, 120
+  part-authorization requests, and 20 completions per 60 seconds. A rejected request returns `429`
+  with `Retry-After: 60`; these abuse controls are not strict global quotas.
 
 ## Retries
 
@@ -34,6 +37,7 @@ but the API treats it as a format-independent, unverified source count.
   complete part list.
 - Treat `400`, `401`, `404`, and most `409` responses as terminal. A `401` from a personal token
   requires replacing or renewing the token, not an unbounded retry loop.
+- On `429`, wait at least the number of seconds in `Retry-After` before retrying.
 
 The [curl example](../examples/curl/upload.sh) implements the complete create, upload, completion,
 and polling flow. A production CLI should add bounded retry delays and persist the idempotency key,

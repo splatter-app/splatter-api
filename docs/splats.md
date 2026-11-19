@@ -2,12 +2,14 @@
 
 All splat resources are scoped to the authenticated owner.
 
-- `GET /api/v1/splats` returns the current owner dashboard snapshot.
 - `GET /api/v1/splats/{publicId}` returns status and editable metadata. Its `scene` field is null
   until the splat is ready.
 - `PATCH /api/v1/splats/{publicId}` updates one or more of `title`, `description`, `visibility`, and
   `viewerConfig` atomically. Viewer configuration can only be updated after processing is ready.
 - `DELETE /api/v1/splats/{publicId}` soft-deletes the splat and returns `204`.
+
+The first external contract intentionally has no list operation. Clients retain the `publicId`
+returned by creation and use it for polling and later operations.
 
 Missing, deleted, malformed, and non-owned public IDs use the same `404` response. Clients must not
 use that response to infer whether another user owns an identifier.
