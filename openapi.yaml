@@ -313,10 +313,9 @@ components:
           type: string
           enum: [public, unlisted]
         viewerConfig:
-          $ref: "#/components/schemas/ViewerConfig"
+          $ref: "#/components/schemas/ViewerConfigInput"
     OwnerSplatResponse:
       type: object
-      additionalProperties: false
       required: [splat, scene]
       properties:
         splat:
@@ -327,7 +326,6 @@ components:
             - type: "null"
     OwnerSplat:
       type: object
-      additionalProperties: false
       required:
         - createdAt
         - description
@@ -360,7 +358,6 @@ components:
           $ref: "#/components/schemas/SplatVisibility"
     EditorScene:
       type: object
-      additionalProperties: false
       required: [datasetBaseUrl, description, publicId, title, viewerConfig]
       properties:
         datasetBaseUrl:
@@ -377,6 +374,39 @@ components:
             - $ref: "#/components/schemas/ViewerConfig"
             - type: "null"
     ViewerConfig:
+      type: object
+      required: [version, defaultView, upDirection, backgroundColor, fov]
+      properties:
+        version:
+          type: integer
+          const: 1
+        defaultView:
+          oneOf:
+            - type: array
+              minItems: 6
+              maxItems: 6
+              items:
+                type: number
+            - type: "null"
+        upDirection:
+          type: array
+          minItems: 3
+          maxItems: 3
+          items:
+            type: number
+        backgroundColor:
+          type: array
+          minItems: 4
+          maxItems: 4
+          items:
+            type: number
+            minimum: 0
+            maximum: 1
+        fov:
+          type: number
+          minimum: 20
+          maximum: 110
+    ViewerConfigInput:
       type: object
       additionalProperties: false
       required: [version, defaultView, upDirection, backgroundColor, fov]
@@ -449,19 +479,17 @@ components:
               minimum: 1
     CreateSplatResponse:
       type: object
-      additionalProperties: false
       required: [splat, upload]
       properties:
         splat:
           $ref: "#/components/schemas/SplatStatus"
         upload:
           type: object
-          additionalProperties: false
           required: [partSizeBytes, partCount]
           properties:
             partSizeBytes:
               type: integer
-              const: 134217728
+              minimum: 1
             partCount:
               type: integer
               minimum: 1
@@ -482,14 +510,12 @@ components:
             maximum: 4000
     PartAuthorizationsResponse:
       type: object
-      additionalProperties: false
       required: [parts]
       properties:
         parts:
           type: array
           items:
             type: object
-            additionalProperties: false
             required: [partNumber, url, expiresAt]
             properties:
               partNumber:
@@ -524,14 +550,12 @@ components:
                 maxLength: 1024
     SplatStatusResponse:
       type: object
-      additionalProperties: false
       required: [splat]
       properties:
         splat:
           $ref: "#/components/schemas/SplatStatus"
     SplatStatus:
       type: object
-      additionalProperties: false
       required: [publicId, status]
       properties:
         publicId:
@@ -540,12 +564,10 @@ components:
           $ref: "#/components/schemas/SplatStatusValue"
     Error:
       type: object
-      additionalProperties: false
       required: [error]
       properties:
         error:
           type: object
-          additionalProperties: false
           required: [code, message, requestId]
           properties:
             code:
@@ -570,7 +592,6 @@ components:
               type: array
               items:
                 type: object
-                additionalProperties: false
                 required: [path, message]
                 properties:
                   path:
