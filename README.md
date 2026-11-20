@@ -10,13 +10,36 @@ or packaging.
 
 ### Usage
 
-Create a personal token on the Splatter Settings page and provide it through `SPLATTER_TOKEN`, then
-pass the path of a PLY file to the script:
+Create a personal token on the Splatter Settings page, then pass the path of a PLY file to the
+script. When no token is configured, the tool prompts for it without displaying what you type:
+
+```bash
+python3 splatter-upload.py scan.ply
+```
+
+On Windows, use the Python launcher:
+
+```powershell
+py .\splatter-upload.py .\scan.ply
+```
+
+For repeated use or automation, set `SPLATTER_TOKEN` in the current shell. In PowerShell:
+
+```powershell
+$env:SPLATTER_TOKEN = 'splatter_v1_...'
+py .\splatter-upload.py .\scan.ply
+```
+
+In a POSIX shell:
 
 ```bash
 export SPLATTER_TOKEN='splatter_v1_...'
 python3 splatter-upload.py scan.ply
 ```
+
+The `--token` option is also available, but interactive use through the hidden prompt avoids
+placing the token in shell history or process arguments. Non-interactive environments must use
+`SPLATTER_TOKEN` or `--token`.
 
 Uploads are unlisted by default, and the command waits until processing finishes. Common options
 include:

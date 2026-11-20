@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures
+import getpass
 import http.client
 import json
 import os
@@ -356,7 +357,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--api-origin", default=os.environ.get("SPLATTER_API_ORIGIN", DEFAULT_API_ORIGIN)
     )
-    parser.add_argument("--token", default=os.environ.get("SPLATTER_TOKEN"))
+    parser.add_argument(
+        "--token",
+        default=os.environ.get("SPLATTER_TOKEN"),
+        help="personal API token (defaults to SPLATTER_TOKEN or a secure prompt)",
+    )
     parser.add_argument("--title", help="splat title (defaults to the filename)")
     parser.add_argument("--description")
     parser.add_argument("--visibility", choices=("public", "unlisted"), default="unlisted")
@@ -365,7 +370,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--no-wait", action="store_true", help="return after upload completion")
     args = parser.parse_args(argv)
     if not args.token:
-        parser.error("set SPLATTER_TOKEN or pass --token")
+        if not sys.stdin.isatty():
+            parser.error("set SPLATTER_TOKEN or pass --token in non-interactive environments")
+        try:
+            args.token = getpass.getpass("Splatter token: ").strip()
+        except KeyboardInterrupt:
+            parser.exit(130, "\ntoken entry interrupted\n")
+        except EOFError:
+            parser.error("could not read a token; set SPLATTER_TOKEN or pass --token")
+        if not args.token:
+            parser.error("token cannot be empty")
     if args.poll_interval <= 0:
         parser.error("--poll-interval must be positive")
     return args
