@@ -42,5 +42,5 @@ but the API treats it as a format-independent, unverified source count.
 The [standalone Python uploader](../README.md#standalone-python-uploader) implements PLY inspection,
 streaming multipart transfer, completion, and terminal polling. It requests a fresh authorization
 and retries only failed storage parts until they succeed. It has no local resume state and does not
-retry other API requests. The [curl example](../examples/curl/upload.sh) remains a lower-level
-walkthrough of the HTTP flow.
+retry other API requests. The [OpenAPI contract](../openapi.yaml) is the lower-level reference for
+the HTTP protocol.
