@@ -53,7 +53,8 @@ python3 splatter-upload.py scan.ply --no-wait
 ```
 
 Progress is written to standard error. The final public ID and status are printed as JSON to
-standard output. Run `python3 splatter-upload.py --help` to see every option.
+standard output. When processing reaches `ready`, the full splat link is printed on the following
+line. Run `python3 splatter-upload.py --help` to see every option.
 
 The tool reads the Gaussian count from the PLY header, streams file ranges directly to short-lived
 part URLs, completes the upload, and waits for processing to reach `ready` or `failed`. A failed

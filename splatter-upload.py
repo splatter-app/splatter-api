@@ -406,6 +406,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"error: {error}", file=sys.stderr)
         return 1
     print(json.dumps(result, separators=(",", ":")))
+    if result["status"] == "ready":
+        app_origin = args.api_origin.rstrip("/").removesuffix("/api/v1")
+        public_id = urllib.parse.quote(result["publicId"], safe="")
+        print(f"{app_origin}/s/{public_id}")
     return 1 if result["status"] == "failed" else 0
 
 

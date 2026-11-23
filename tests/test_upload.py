@@ -1,6 +1,9 @@
 from pathlib import Path
+import contextlib
+import io
 import tempfile
 import unittest
+from unittest import mock
 
 from load_tool import load_tool
 
@@ -39,6 +42,38 @@ class FakeClient:
 
 
 class UploadTests(unittest.TestCase):
+    def test_main_prints_full_splat_link_when_ready(self):
+        stdout = io.StringIO()
+        with mock.patch.object(
+            tool,
+            "parse_args",
+            return_value=mock.Mock(
+                api_origin="https://new.splatter.app/api/v1/",
+                token="token",
+                source=Path("scan.ply"),
+                title=None,
+                description=None,
+                visibility="unlisted",
+                workers=4,
+                no_wait=False,
+                poll_interval=5.0,
+            ),
+        ), mock.patch.object(
+            tool,
+            "run_upload",
+            return_value={"publicId": "abc-123-xyz", "status": "ready"},
+        ), contextlib.redirect_stdout(stdout):
+            exit_code = tool.main()
+
+        self.assertEqual(exit_code, 0)
+        self.assertEqual(
+            stdout.getvalue().splitlines(),
+            [
+                '{"publicId":"abc-123-xyz","status":"ready"}',
+                "https://new.splatter.app/s/abc-123-xyz",
+            ],
+        )
+
     def test_streams_ranges_and_completes_in_order(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "scan.ply"
